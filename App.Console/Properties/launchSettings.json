@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "PopulateHistoricData": {
+      "commandName": "Project",
+      "commandLineArgs": "test"
+    }
+  }
+}
