@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "PopulateHistoricData": {
+    "NetCoreConsoleAppTemplate": {
       "commandName": "Project",
       "commandLineArgs": "test"
     }
