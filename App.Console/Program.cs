@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Threading.Tasks;
-using App.Console.Options;
+﻿using App.Console.Options;
 using App.Core.Models.Configuration;
 using App.Core.Services.Configuration;
 using App.Services;
@@ -11,111 +8,110 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
 
-namespace App.Console
+namespace App.Console;
+
+class Program
 {
-    class Program
+    private static readonly IServiceProvider ServiceProvider;
+    private static readonly IConfigurationRoot Configuration;
+    private static ILogger<Program> _logger;
+
+    static Program()
     {
-        private static readonly IServiceProvider ServiceProvider;
-        private static readonly IConfigurationRoot Configuration;
-        private static ILogger<Program> _logger;
+        var builder = new ConfigurationBuilder()
+            .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Configuration"))
+            .AddJsonFile("file.json", optional: false, reloadOnChange: false)
+            .AddEnvironmentVariables();
 
-        static Program()
+        Configuration = builder.Build();
+
+        var fileSettings = Configuration.GetSection(nameof(FileSettings)).Get<FileSettings>();
+
+        Log.Logger = new LoggerConfiguration()
+            .WriteTo.File(Path.Combine(fileSettings.LogDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}.log"))   // log to file system
+            .WriteTo.Console()                                                                              // log to console
+            .CreateLogger();
+
+        var serviceCollection = new ServiceCollection();
+        ConfigureServices(serviceCollection);
+
+        ServiceProvider = serviceCollection.BuildServiceProvider();
+    }
+
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddOptions();
+
+        // logging
+        services.AddLogging(configure => configure.AddSerilog());
+
+        // configuration
+        services.Configure<FileSettings>(options => Configuration.GetSection(nameof(FileSettings)).Bind(options));
+        services.AddSingleton<IFileSettingsService, FileSettingsService>();
+
+        // services
+        services.AddSingleton<IProcessService, ProcessService>();
+    }
+
+    /// <summary>
+    /// App entry point. Use CommandLineParser to configure any command line arguments.
+    /// </summary>
+    /// <param name="args"></param>
+    /// <returns></returns>
+    static async Task Main(string[] args)
+    {
+        _logger = ServiceProvider.GetService<ILogger<Program>>();
+
+        await Parser.Default.ParseArguments<RunOptions, TestOptions>(args)
+            .MapResult(
+                async (RunOptions options) => await Run(options),
+                async (TestOptions options) => await RunTest(options),
+                err => Task.FromResult(-1)
+            );
+    }
+
+    /// <summary>
+    /// Run on 'run' verb, e.g. App.Console.exe run
+    /// </summary>
+    /// <param name="options"></param>
+    /// <returns></returns>
+    private static async Task Run(RunOptions options)
+    {
+        var processSvc = ServiceProvider.GetService<IProcessService>();
+
+        switch (options.Action)
         {
-            var builder = new ConfigurationBuilder()
-                .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Configuration"))
-                .AddJsonFile("file.json", optional: false, reloadOnChange: false)
-                .AddEnvironmentVariables();
+            case RunAction.AnAction:
+                try
+                {
+                    await processSvc.Process();
+                }
+                catch (Exception e)
+                {
+                    _logger?.LogError(e, "Failed to run process");
 
-            Configuration = builder.Build();
+                    throw;
+                }
+                break;
 
-            var fileSettings = Configuration.GetSection(nameof(FileSettings)).Get<FileSettings>();
-
-            Log.Logger = new LoggerConfiguration()
-                .WriteTo.File(Path.Combine(fileSettings.LogDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}.log"))   // log to file system
-                .WriteTo.Console()                                                                              // log to console
-                .CreateLogger();
-
-            var serviceCollection = new ServiceCollection();
-            ConfigureServices(serviceCollection);
-
-            ServiceProvider = serviceCollection.BuildServiceProvider();
+            default:
+                throw new ArgumentOutOfRangeException();
         }
+    }
 
-        private static void ConfigureServices(IServiceCollection services)
+    private static async Task RunTest(TestOptions options)
+    {
+        var processSvc = ServiceProvider.GetService<IProcessService>();
+
+        try
         {
-            services.AddOptions();
-
-            // logging
-            services.AddLogging(configure => configure.AddSerilog());
-
-            // configuration
-            services.Configure<FileSettings>(options => Configuration.GetSection(nameof(FileSettings)).Bind(options));
-            services.AddSingleton<IFileSettingsService, FileSettingsService>();
-
-            // services
-            services.AddSingleton<IProcessService, ProcessService>();
+            await processSvc.Process(true);
         }
-
-        /// <summary>
-        /// App entry point. Use CommandLineParser to configure any command line arguments.
-        /// </summary>
-        /// <param name="args"></param>
-        /// <returns></returns>
-        static async Task Main(string[] args)
+        catch (Exception e)
         {
-            _logger = ServiceProvider.GetService<ILogger<Program>>();
+            _logger?.LogError(e, "Failed to run process");
 
-            await Parser.Default.ParseArguments<RunOptions, TestOptions>(args)
-                .MapResult(
-                    async (RunOptions options) => await Run(options),
-                    async (TestOptions options) => await RunTest(options),
-                    err => Task.FromResult(-1)
-                );
-        }
-
-        /// <summary>
-        /// Run on 'run' verb, e.g. App.Console.exe run
-        /// </summary>
-        /// <param name="options"></param>
-        /// <returns></returns>
-        private static async Task Run(RunOptions options)
-        {
-            var processSvc = ServiceProvider.GetService<IProcessService>();
-
-            switch (options.Action)
-            {
-                case RunAction.AnAction:
-                    try
-                    {
-                        await processSvc.Process();
-                    }
-                    catch (Exception e)
-                    {
-                        _logger?.LogError(e, "Failed to run process");
-
-                        throw;
-                    }
-                    break;
-
-                default:
-                    throw new ArgumentOutOfRangeException();
-            }
-        }
-
-        private static async Task RunTest(TestOptions options)
-        {
-            var processSvc = ServiceProvider.GetService<IProcessService>();
-
-            try
-            {
-                await processSvc.Process(true);
-            }
-            catch (Exception e)
-            {
-                _logger?.LogError(e, "Failed to run process");
-
-                throw;
-            }
+            throw;
         }
     }
 }

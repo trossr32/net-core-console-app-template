@@ -1,10 +1,9 @@
 ﻿using CommandLine;
 
-namespace App.Console.Options
+namespace App.Console.Options;
+
+[Verb("test", HelpText = "Test functions.")]
+public class TestOptions
 {
-    [Verb("test", HelpText = "Test functions.")]
-    public class TestOptions
-    {
         
-    }
 }

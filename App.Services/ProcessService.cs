@@ -1,26 +1,24 @@
-﻿using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 
-namespace App.Services
+namespace App.Services;
+
+public interface IProcessService
 {
-    public interface IProcessService
+    Task Process(bool isTest = false);
+}
+
+public class ProcessService : IProcessService
+{
+    private readonly ILogger<ProcessService> _logger;
+
+    public ProcessService(ILogger<ProcessService> logger)
     {
-        Task Process(bool isTest = false);
+        _logger = logger;
     }
 
-    public class ProcessService : IProcessService
+    public async Task Process(bool isTest = false)
     {
-        private readonly ILogger<ProcessService> _logger;
-
-        public ProcessService(ILogger<ProcessService> logger)
-        {
-            _logger = logger;
-        }
-
-        public async Task Process(bool isTest = false)
-        {
-            if (isTest)
-                _logger?.LogInformation("Testing!");
-        }
+        if (isTest)
+            _logger?.LogInformation("Testing!");
     }
 }
