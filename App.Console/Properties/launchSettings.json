@@ -1,8 +1,20 @@
 {
   "profiles": {
-    "NetCoreConsoleAppTemplate": {
+    "test": {
       "commandName": "Project",
-      "commandLineArgs": "test"
+      "commandLineArgs": "run -t",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true
+    },
+    "run": {
+      "commandName": "Project",
+      "commandLineArgs": "run",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "dotnetRunMessages": true
     }
   }
 }
