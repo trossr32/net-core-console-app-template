@@ -1,24 +1,24 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using App.Core.Models.CommandModels;
+using Microsoft.Extensions.Logging;
 
 namespace App.Services;
 
 public interface IProcessService
 {
-    Task Process(bool isTest = false);
+    Task Process(RunModel options, CancellationToken token);
 }
 
-public class ProcessService : IProcessService
+public class ProcessService(ILogger<ProcessService> logger) : IProcessService
 {
-    private readonly ILogger<ProcessService> _logger;
-
-    public ProcessService(ILogger<ProcessService> logger)
+    public async Task Process(RunModel options, CancellationToken token)
     {
-        _logger = logger;
-    }
+        if (options.Test)
+        {
+            logger?.LogInformation("Testing!");
 
-    public async Task Process(bool isTest = false)
-    {
-        if (isTest)
-            _logger?.LogInformation("Testing!");
+            return;
+        }
+
+        logger?.LogInformation("Running!");
     }
 }

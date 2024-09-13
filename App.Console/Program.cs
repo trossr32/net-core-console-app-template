@@ -1,12 +1,10 @@
-﻿using App.Console.Options;
-using App.Core.Models.Configuration;
-using App.Core.Services.Configuration;
+﻿using App.Console.Extensions;
 using App.Services;
-using CommandLine;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using System.CommandLine;
 
 namespace App.Console;
 
@@ -19,17 +17,12 @@ class Program
     static Program()
     {
         var builder = new ConfigurationBuilder()
-            .SetBasePath(Path.Combine(Directory.GetCurrentDirectory(), "Configuration"))
-            .AddJsonFile("file.json", optional: false, reloadOnChange: false)
             .AddEnvironmentVariables();
 
         Configuration = builder.Build();
 
-        var fileSettings = Configuration.GetSection(nameof(FileSettings)).Get<FileSettings>();
-
         Log.Logger = new LoggerConfiguration()
-            .WriteTo.File(Path.Combine(fileSettings.LogDirectory, $"{DateTime.Now:yyyyMMdd_HHmmss}.log"))   // log to file system
-            .WriteTo.Console()                                                                              // log to console
+            .WriteTo.Console(outputTemplate: "{Message:lj}{NewLine}{Exception}") // log to console
             .CreateLogger();
 
         var serviceCollection = new ServiceCollection();
@@ -45,73 +38,42 @@ class Program
         // logging
         services.AddLogging(configure => configure.AddSerilog());
 
-        // configuration
-        services.Configure<FileSettings>(options => Configuration.GetSection(nameof(FileSettings)).Bind(options));
-        services.AddSingleton<IFileSettingsService, FileSettingsService>();
-
         // services
-        services.AddSingleton<IProcessService, ProcessService>();
+        services.AddSingleton<ProcessService>();
     }
 
     /// <summary>
-    /// App entry point. Use CommandLineParser to configure any command line arguments.
+    /// App entry point. Use System.CommandLine to configure any command line arguments.
     /// </summary>
     /// <param name="args"></param>
     /// <returns></returns>
     static async Task Main(string[] args)
     {
-        _logger = ServiceProvider.GetService<ILogger<Program>>();
+        _logger = ServiceProvider.GetService<ILogger<Program>>()!;
 
-        await Parser.Default.ParseArguments<RunOptions, TestOptions>(args)
-            .MapResult(
-                async (RunOptions options) => await Run(options),
-                async (TestOptions options) => await RunTest(options),
-                err => Task.FromResult(-1)
-            );
+        var rootCommand = new RootCommand("app");
+
+        rootCommand
+            .AddRunCommand(ServiceProvider);
+
+        await rootCommand.InvokeAsync(args);
     }
 
-    /// <summary>
-    /// Run on 'run' verb, e.g. App.Console.exe run
-    /// </summary>
-    /// <param name="options"></param>
-    /// <returns></returns>
-    private static async Task Run(RunOptions options)
+    private static void WriteLine(string text, ConsoleColor? colour = null) => WriteLine(null, text, colour);
+
+    private static void WriteLine(Exception? e, string text, ConsoleColor? colour = null)
     {
-        var processSvc = ServiceProvider.GetService<IProcessService>();
+        var oldColour = System.Console.ForegroundColor;
 
-        switch (options.Action)
-        {
-            case RunAction.AnAction:
-                try
-                {
-                    await processSvc.Process();
-                }
-                catch (Exception e)
-                {
-                    _logger?.LogError(e, "Failed to run process");
+        if (colour.HasValue && colour != oldColour)
+            System.Console.ForegroundColor = colour.Value;
 
-                    throw;
-                }
-                break;
+        System.Console.WriteLine(text);
 
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-    }
+        if (e != null)
+            System.Console.WriteLine(e.ToString());
 
-    private static async Task RunTest(TestOptions options)
-    {
-        var processSvc = ServiceProvider.GetService<IProcessService>();
-
-        try
-        {
-            await processSvc.Process(true);
-        }
-        catch (Exception e)
-        {
-            _logger?.LogError(e, "Failed to run process");
-
-            throw;
-        }
+        if (colour.HasValue && colour != oldColour)
+            System.Console.ForegroundColor = oldColour;
     }
 }
