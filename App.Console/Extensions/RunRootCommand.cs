@@ -37,13 +37,13 @@ public static class RunRootCommand
     /// <returns></returns>
     private static Command Build(Func<InvocationContext, Task> func)
     {
-        var getGuidCommand = new Command("run", "Run process");
+        var runCommand = new Command("run", "Run process");
 
-        getGuidCommand.AddOption(RunOptions.TestOption);
+        runCommand.AddOption(RunOptions.TestOption);
 
-        getGuidCommand.SetHandler(func);
+        runCommand.SetHandler(func);
 
-        return getGuidCommand;
+        return runCommand;
     }
 
 
@@ -55,13 +55,13 @@ public static class RunRootCommand
     /// <returns></returns>
     private static async Task GetGuid(RunModel options, IServiceProvider serviceProvider, CancellationToken token)
     {
-        var guidSvc = serviceProvider.GetService<ProcessService>()!;
+        var runSvc = serviceProvider.GetService<ProcessService>()!;
         var loggerFactory = serviceProvider.GetService<ILoggerFactory>()!;
         var logger = loggerFactory.CreateLogger(nameof(RunRootCommand));
 
         try
         {
-            await guidSvc.Process(options, token);
+            await runSvc.Process(options, token);
         }
         catch (Exception e)
         {
