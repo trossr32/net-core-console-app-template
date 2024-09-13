@@ -1,4 +1,5 @@
 # net-core-console-app-template
+
 An empty .net 8 console app with command line arg options, DI, &amp; SeriLog logging
 
 ## Description
