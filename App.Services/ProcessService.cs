@@ -14,11 +14,11 @@ public class ProcessService(ILogger<ProcessService> logger) : IProcessService
     {
         if (options.Test)
         {
-            logger?.LogInformation("Testing!");
+            logger.LogInformation("Testing!");
 
             return;
         }
 
-        logger?.LogInformation("Running!");
+        logger.LogInformation("Running!");
     }
 }

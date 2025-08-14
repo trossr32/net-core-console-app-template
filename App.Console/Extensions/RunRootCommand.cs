@@ -46,12 +46,12 @@ public static class RunRootCommand
         return runCommand;
     }
 
-
     /// <summary>
     /// Run on 'run' verb, e.g. run
     /// </summary>
     /// <param name="options"></param>
     /// <param name="serviceProvider"></param>
+    /// <param name="token"></param>
     /// <returns></returns>
     private static async Task GetGuid(RunModel options, IServiceProvider serviceProvider, CancellationToken token)
     {
@@ -65,7 +65,7 @@ public static class RunRootCommand
         }
         catch (Exception e)
         {
-            logger?.LogError(e, "Failed to run process");
+            logger.LogError(e, "Failed to run process");
 
             throw;
         }
