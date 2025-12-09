@@ -2,7 +2,7 @@
   "profiles": {
     "test": {
       "commandName": "Project",
-      "commandLineArgs": "run -t",
+      "commandLineArgs": "-t",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
@@ -10,7 +10,7 @@
     },
     "run": {
       "commandName": "Project",
-      "commandLineArgs": "run",
+      "commandLineArgs": "",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
